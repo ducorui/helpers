@@ -42,7 +42,9 @@ interface UseFormReturn {
 }
 
 export const useForm = (initialValues: FormFiledData = {}): UseFormReturn => {
-    const [defaults, setDefaults] = useState<FormFiledData>(initialValues);
+
+    const [isMount, setIsMount] = useState(false);
+    const [defaults, setDefaults] = useState<FormFiledData>({});
     const [filedData, setFiledData] = useState<FormFiledData>({});
     const [isDirty, setIsDirty] = useState<boolean>(false); // form value change
     const [errors, setErrors] = useState<FormFieldsError>({});
@@ -50,21 +52,25 @@ export const useForm = (initialValues: FormFiledData = {}): UseFormReturn => {
     const [hasErrors, setHasErrors] = useState<boolean>(false);
 
     useMemo(() => {
-        setFiledData(defaults);
+        if(isMount){
+            return;
+        }
+        setDefaults(initialValues);
+        setFiledData(initialValues);
         setErrors({});
-    }, [defaults]);
+        setIsMount(true);
+    }, [initialValues]);
 
     // Common request handler function
     const request = (
         method: string,
         url: string,
-        data: any = {},
         options: OptionsOrConfig = {}
     ) => {
         options?.onStart?.(); // Call the onStart hook
         // Call the method dynamically on feach and chain promises
         
-        return http[method](url, { data }) // Adjusted for typical feach usage
+        return http[method](url, filedData) // Adjusted for typical feach usage
             .then((response: any) => {
                 options?.onSuccess?.(response); // Call the onSuccess hook
             })
@@ -131,21 +137,25 @@ export const useForm = (initialValues: FormFiledData = {}): UseFormReturn => {
             }
         },
         setFiledData: (keyOrData: keyof FormFiledData | FormFiledData, maybeValue: FormFiledData[keyof FormFiledData] = ""): void => {
+
             if (typeof keyOrData === 'string' && typeof maybeValue !== 'undefined') {
                 setFiledData({ ...filedData, [keyOrData]: typeof maybeValue === 'undefined'? "": maybeValue });
-            } else if (typeof keyOrData === 'object') {
+            } else if (typeof keyOrData === 'object' && Object.keys(keyOrData).length) {
                 const newData: FormFiledData = {};
-                for (const key in keyOrData) {
-                    if (keyOrData.hasOwnProperty(key)) {
-                        newData[key] = typeof keyOrData[key] === 'undefined'?"": keyOrData[key] ;
+
+                Object.entries(keyOrData).map(([key, maybeValue]) => {
+                    if(typeof key === 'string' && typeof maybeValue === 'string'){
+                        newData[key] = maybeValue;
                     }
-                }
+                });
+
                 setFiledData({
                     ...filedData,
                     ...newData,
                 });
             }
         },
+
         reset(...fields: Array<keyof FormFiledData>) {
             if (fields.length === 0) {
                 setFiledData(defaults);
@@ -192,14 +202,21 @@ export const useForm = (initialValues: FormFiledData = {}): UseFormReturn => {
         },
             // Proxy to intercept and dynamically handle HTTP methods
         req: new Proxy<Record<string, AnyMethod>>({}, {
+
             get(target, method: string) {
-                console.log("___", target, method);
-                if (typeof http[method] === 'function') {
-                    return (url: string, data?: any, options?: OptionsOrConfig) => {
-                        return request(method, url, data, options);
-                    };
-                }
-                throw new Error(`Method ${method} is not supported.`);
+
+                return <T = any>(...args: any[]): T => {
+
+                    const [url, options] = args;
+                    
+                    return request(method, url, options) && target;
+                };
+
+                // return (url: string, data?: any, options?: OptionsOrConfig) => {
+
+                //     console.log("2.___", method, url, data, options);
+                //     // return request(method, url, data, options);
+                // };
             }
         }),
     };
