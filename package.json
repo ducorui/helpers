@@ -1,12 +1,12 @@
 {
   "name": "@ducor/helpers",
-  "version": "1.0.7",
+  "version": "1.0.9",
   "private": false,
   "type": "commonjs",
   "publishConfig": {
     "access": "public"
   },
-  "main": "lib/index.ts",
+  "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "repository": {
     "type": "git",
