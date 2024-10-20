@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import http from "@ducor/http-client";
 import isEqual from "lodash.isequal";
 
@@ -16,7 +16,7 @@ interface OnFinish {
   response: any;
   filedData: FormFiledData;
   errors: FormFieldsError;
-  isSuccess: boolean;
+  wasSuccessful: boolean;
   hasErrors: boolean;
 }
 
@@ -42,19 +42,19 @@ interface HttpInterface {
 
 interface UseFormReturn {
   isDirty: boolean;
-  isChanged: boolean;
   processing: boolean;
   filedData: FormFiledData;
   setDefaults: (
     fieldOrFields?: string | FormFiledData,
     maybeValue?: FormFiledData[keyof FormFiledData]
   ) => void;
-  setFiledData: (filedData: FormFiledData) => void;
-  transform: (filedData: FormFiledData) => void;
+  setFiledData: (keyOrData: keyof FormFiledData | FormFiledData,
+    maybeValue?: FormFiledData[keyof FormFiledData]) => void;
+  transform: (callback: any) => any;
   reset: (...fields: Array<keyof FormFiledData>) => void;
   errors: FormFieldsError;
   hasErrors: boolean;
-  isSuccess: boolean;
+  wasSuccessful: boolean;
   clearErrors: () => void;
   setError: (
     fieldErrorOrErrros: keyof FormFieldsError | FormFieldsError,
@@ -76,15 +76,23 @@ export const useForm = (
     rememeberKey = initialData;
   }
 
+  const isMounted = useRef<boolean|null>(null);
   const [isMount, setIsMount] = useState(false);
   const [defaults, setDefaults] = useState<FormFiledData>({});
   const [filedData, setFiledData] = useState<FormFiledData>({});
-  const [isDirty, setIsDirty] = useState<boolean>(false); // form value change
   const [errors, setErrors] = useState<FormFieldsError>({});
   const [processing, setProcessing] = useState<boolean>(false);
   const [hasErrors, setHasErrors] = useState<boolean>(false);
-  const [isSuccess, setIsSuccess] = useState(false);
-  const [isChanged, setIsChanged] = useState(false);
+  const [wasSuccessful, setWasSuccessful] = useState(false);
+  let transform = (data: FormFiledData) => data
+
+  
+  useEffect(() => {
+    isMounted.current = true
+    return () => {
+      isMounted.current = false
+    }
+  }, [])
 
   useMemo(() => {
     if (isMount) {
@@ -96,18 +104,15 @@ export const useForm = (
     setIsMount(true);
   }, [initialValues]);
 
-  // check is changes
-  useEffect(() => {
-    setIsChanged(!isEqual(defaults, filedData));
-  }, [defaults, filedData]);
-
   // Common request handler function
-  const request = (
+  const request =   useCallback( (
     method: string,
     url: string,
     options: OptionsOrConfig = {}
+
   ) => {
-    setIsSuccess(false);
+
+    setWasSuccessful(false);
     setErrors({});
     setHasErrors(false);
     setProcessing(true);
@@ -117,9 +122,11 @@ export const useForm = (
     }
     // Call the method dynamically on feach and chain promises
 
-    return http[method](url, filedData) // Adjusted for typical feach usage
+    const data = transform(filedData);
+
+    return http[method](url, data) // Adjusted for typical feach usage
       .then((response: any) => {
-        setIsSuccess(true);
+        setWasSuccessful(true);
 
         // resolve setIsChanged
         setDefaults(filedData);
@@ -133,7 +140,7 @@ export const useForm = (
             response: response,
             filedData,
             errors,
-            isSuccess,
+            wasSuccessful,
             hasErrors,
           }); // Call the onFinish hook
         }
@@ -177,7 +184,7 @@ export const useForm = (
               response: undefined,
               filedData,
               errors: filteredErrors,
-              isSuccess,
+              wasSuccessful,
               hasErrors,
             }); // Call the onFinish hook
           }
@@ -188,13 +195,13 @@ export const useForm = (
       .finally(() => {
         setProcessing(false);
       });
-  };
+
+  }, [filedData, setErrors, transform]);
 
   return {
-    isDirty,
-    isChanged,
+    isDirty: !isEqual(filedData, defaults),
     processing,
-    isSuccess,
+    wasSuccessful,
     hasErrors,
     filedData,
     setDefaults: (
@@ -244,8 +251,8 @@ export const useForm = (
       }
     },
 
-    transform(fields: FormFiledData) {
-      setFiledData(fields);
+    transform(callback) {
+      transform = callback
     },
     reset(...fields: Array<keyof FormFiledData>) {
       if (fields.length === 0) {
