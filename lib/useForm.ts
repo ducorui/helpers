@@ -181,30 +181,49 @@ export const useForm = (
     wasSuccessful,
     hasErrors,
     filedData,
-    setDefaults: (
-      fieldOrFields?: keyof FormFieldData | FormFieldData,
-      maybeValue?: FormFieldData[keyof FormFieldData]
-    ): void => {
-      if (typeof fieldOrFields === "undefined") {
-        setDefaults(() => filedData);
-      } else if (
-        typeof fieldOrFields === "string" &&
-        typeof maybeValue !== "undefined"
-      ) {
-        setFiledData({ ...defaults, [fieldOrFields]: maybeValue });
-      } else if (typeof fieldOrFields === "object") {
-        const newData: FormFieldData = {};
-        for (const key in fieldOrFields) {
-          if (fieldOrFields.hasOwnProperty(key)) {
-            newData[key] = fieldOrFields[key];
-          }
+    setDefaults(fieldOrFields?: string | FormFieldData, maybeValue?: string| string[]) {
+      
+      setDefaults((defaults) => {
+        // If no fieldOrFields is provided, return filedData
+        if (typeof fieldOrFields === 'undefined') {
+          return filedData; // Assuming filedData is defined in scope
         }
-        setDefaults({
-          ...defaults,
-          ...newData,
-        });
-      }
+    
+        // Handle the case when fieldOrFields is a string
+        else if (typeof fieldOrFields === 'string' && (typeof maybeValue === 'string' || (Array.isArray(maybeValue)))) {
+          return { ...defaults, [fieldOrFields]: maybeValue }; // Set the specific field
+        }
+    
+        // Handle the case when fieldOrFields is an object
+        return { ...defaults, ...fieldOrFields as FormFieldData }; // Merge the entire object
+      });
+
     },
+
+    // setDefaults: (
+    //   fieldOrFields?: keyof FormFieldData | FormFieldData,
+    //   maybeValue?: FormFieldData[keyof FormFieldData]
+    // ): void => {
+    //   if (typeof fieldOrFields === "undefined") {
+    //     setDefaults(() => filedData);
+    //   } else if (
+    //     typeof fieldOrFields === "string" &&
+    //     typeof maybeValue !== "undefined"
+    //   ) {
+    //     setFiledData({ ...defaults, [fieldOrFields]: maybeValue });
+    //   } else if (typeof fieldOrFields === "object") {
+    //     const newData: FormFieldData = {};
+    //     for (const key in fieldOrFields) {
+    //       if (fieldOrFields.hasOwnProperty(key)) {
+    //         newData[key] = fieldOrFields[key];
+    //       }
+    //     }
+    //     setDefaults({
+    //       ...defaults,
+    //       ...newData,
+    //     });
+    //   }
+    // },
     setFiledData: (
       keyOrData: keyof FormFieldData | FormFieldData,
       maybeValue?: FormFieldData[keyof FormFieldData]
