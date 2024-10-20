@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import http from "@ducor/http-client";
 import isEqual from "lodash.isequal";
 
@@ -23,18 +23,18 @@ interface OptionsOrConfig {
   onFinish?: (data: OnFinish) => void;
 }
 
-interface HttpInterface {
-  get: (url: string, params?: any, options?: OptionsOrConfig) => Promise<void>;
-  post: (url: string, data?: any, options?: OptionsOrConfig) => Promise<void>;
-  put: (url: string, data?: any, options?: OptionsOrConfig) => Promise<void>;
-  patch: (url: string, data?: any, options?: OptionsOrConfig) => Promise<void>;
-  delete: (url: string, data?: any, options?: OptionsOrConfig) => Promise<void>;
-  [key: string]: (
-    url: string,
-    data?: any,
-    options?: OptionsOrConfig
-  ) => Promise<void>;
-}
+// interface HttpInterface {
+//   get: (url: string, params?: any, options?: OptionsOrConfig) => Promise<void>;
+//   post: (url: string, data?: any, options?: OptionsOrConfig) => Promise<void>;
+//   put: (url: string, data?: any, options?: OptionsOrConfig) => Promise<void>;
+//   patch: (url: string, data?: any, options?: OptionsOrConfig) => Promise<void>;
+//   delete: (url: string, data?: any, options?: OptionsOrConfig) => Promise<void>;
+//   [key: string]: (
+//     url: string,
+//     data?: any,
+//     options?: OptionsOrConfig
+//   ) => Promise<void>;
+// }
 
 interface UseFormReturn {
   isDirty: boolean;
@@ -72,13 +72,6 @@ export const useForm = (
     (typeof rememberKeyOrInitialValues === 'string' ? maybeInitialValues : rememberKeyOrInitialValues) || ({} as FormFieldData)
   );
 
-  let initialValues = {};
-  if (rememberKeyOrInitialValues && typeof rememberKeyOrInitialValues === "object") {
-    initialValues = rememberKeyOrInitialValues;
-  }
-
-  const [isMount, setIsMount] = useState(false);
-
   const [filedData, setFiledData] = useState<FormFieldData>({});
   const [errors, setErrors] = useState<FormFieldsError>({});
   const [processing, setProcessing] = useState<boolean>(false);
@@ -92,17 +85,7 @@ export const useForm = (
     return () => {
       isMounted.current = false
     }
-  }, [])
-
-  useMemo(() => {
-    if (isMount) {
-      return;
-    }
-    setDefaults(initialValues);
-    setFiledData(initialValues);
-    setErrors({});
-    setIsMount(true);
-  }, [initialValues]);
+  }, []);
 
   // Common request handler function
   const request =   useCallback( (
