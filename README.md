@@ -6,7 +6,7 @@ Since working with forms is so common, Inertia includes a form helper designed t
 ```jsx
     import { useForm } from '@ducor/helpers'
     
-    const { filedData, setFiledData, req, processing, errors } = useForm({
+    const { data, setData, req, processing, errors } = useForm({
       email: '',
       password: '',
       remember: false,
@@ -19,11 +19,11 @@ Since working with forms is so common, Inertia includes a form helper designed t
     
     return (
       <form onSubmit={submit}>
-        <input type="text" value={filedData.email} onChange={e => setFiledData('email', e.target.value)} />
+        <input type="text" value={data.email} onChange={e => setData('email', e.target.value)} />
         {errors.email && <div>{errors.email}</div>}
-        <input type="password" value={filedData.password} onChange={e => setFiledData('password', e.target.value)} />
+        <input type="password" value={data.password} onChange={e => setData('password', e.target.value)} />
         {errors.password && <div>{errors.password}</div>}
-        <input type="checkbox" checked={filedData.remember} onChange={e => setFiledData('remember', e.target.checked)} /> Remember Me
+        <input type="checkbox" checked={data.remember} onChange={e => setData('remember', e.target.checked)} /> Remember Me
         <button type="submit" disabled={processing}>Login</button>
       </form>
     )
@@ -53,15 +53,15 @@ The submit methods support all of the typical [visit options](/manual-visits), s
       onSuccess: () => reset('password'),
     })
 ```
-If you need to modify the form filedData before it's sent to the server, you can do so via the `transform()` method.
+If you need to modify the form data before it's sent to the server, you can do so via the `transform()` method.
 
 
 ```jsx
     const { transform } = useForm({ ... })
     
-    transform((filedData) => ({
-      ...filedData,
-      remember: filedData.remember ? 'on' : '',
+    transform((data) => ({
+      ...data,
+      remember: data.remember ? 'on' : '',
     }))
 ```
 You can use the `processing` property to track if a form is currently being submitted. This can be helpful for preventing double form submissions by disabling the submit button.
@@ -171,19 +171,19 @@ To cancel a form submission, use the `cancel()` method.
     
     cancel()
 ```
-To instruct Inertia to store a form's filedData and errors in [history state](/remembering-state), you can provide a unique form key as the first argument when instantiating your form.
+To instruct Inertia to store a form's data and errors in [history state](/remembering-state), you can provide a unique form key as the first argument when instantiating your form.
 
 
 ```jsx
     import { useForm } from '@ducor/helpers'
     
-    const form = useForm('CreateUser', filedData)
-    const form = useForm(`EditUser:${user.id}`, filedData)
+    const form = useForm('CreateUser', data)
+    const form = useForm(`EditUser:${user.id}`, data)
 ```
 File uploads
 ------------
 
-When making requests or form submissions that include files, Inertia will automatically convert the request filedData into a `FormData` object.
+When making requests or form submissions that include files, Inertia will automatically convert the request data into a `FormData` object.
 
 For a more thorough discussion of file uploads, please consult the [file uploads documentation](/file-uploads).
 
