@@ -4,17 +4,13 @@ import isEqual from "lodash.isequal";
 
 export type AnyMethod = (...args: any[]) => any;
 
-type FormFiledData = {
-  [key: string]: string | string[];
-};
+type FormFieldData = Record<string, string | string[]>;
 
-type FormFieldsError = {
-  [key: string]: string | string[];
-};
+type FormFieldsError =  Record<string, string[]>;
 
 interface OnFinish {
   response: any;
-  filedData: FormFiledData;
+  filedData: FormFieldData;
   errors: FormFieldsError;
   wasSuccessful: boolean;
   hasErrors: boolean;
@@ -43,48 +39,52 @@ interface HttpInterface {
 interface UseFormReturn {
   isDirty: boolean;
   processing: boolean;
-  filedData: FormFiledData;
-  setDefaults: (
-    fieldOrFields?: string | FormFiledData,
-    maybeValue?: FormFiledData[keyof FormFiledData]
-  ) => void;
-  setFiledData: (keyOrData: keyof FormFiledData | FormFiledData,
-    maybeValue?: FormFiledData[keyof FormFiledData]) => void;
-  transform: (callback: any) => any;
-  reset: (...fields: Array<keyof FormFiledData>) => void;
-  errors: FormFieldsError;
   hasErrors: boolean;
   wasSuccessful: boolean;
+  
+  filedData: FormFieldData;
+  setDefaults: (
+    fieldOrFields?: string | FormFieldData,
+    maybeValue?: FormFieldData[keyof FormFieldData]
+  ) => void;
+  setFiledData: (keyOrData: keyof FormFieldData | FormFieldData,
+    maybeValue?: FormFieldData[keyof FormFieldData]) => void;
+  transform: (callback: any) => any;
+  reset: (...fields: Array<keyof FormFieldData>) => void;
+  errors: FormFieldsError;
+
   clearErrors: () => void;
   setError: (
-    fieldErrorOrErrros: keyof FormFieldsError | FormFieldsError,
-    maybeValue?: string | string[]
+    fieldErrorOrErrros: string | FormFieldsError,
+    maybeValue?: string[]
   ) => void;
   req: Record<string, AnyMethod>; // Proxy-like object for dynamic method handling
 }
 
 export const useForm = (
-  initialData: FormFiledData | string | undefined = {}
+  rememberKeyOrInitialValues?: FormFieldData | string, maybeInitialValues?: FormFieldData,
 ): UseFormReturn => {
-  let rememeberKey: string | null = null;
-  let initialValues = {};
-  if (initialData && typeof initialData === "object") {
-    initialValues = initialData;
-  }
-
-  if (typeof initialData === "string") {
-    rememeberKey = initialData;
-  }
 
   const isMounted = useRef<boolean|null>(null);
+  const rememberKey = typeof rememberKeyOrInitialValues === 'string' ? rememberKeyOrInitialValues : null
+
+  const [defaults, setDefaults] = useState<FormFieldData>(
+    (typeof rememberKeyOrInitialValues === 'string' ? maybeInitialValues : rememberKeyOrInitialValues) || ({} as FormFieldData)
+  );
+
+  let initialValues = {};
+  if (rememberKeyOrInitialValues && typeof rememberKeyOrInitialValues === "object") {
+    initialValues = rememberKeyOrInitialValues;
+  }
+
   const [isMount, setIsMount] = useState(false);
-  const [defaults, setDefaults] = useState<FormFiledData>({});
-  const [filedData, setFiledData] = useState<FormFiledData>({});
+
+  const [filedData, setFiledData] = useState<FormFieldData>({});
   const [errors, setErrors] = useState<FormFieldsError>({});
   const [processing, setProcessing] = useState<boolean>(false);
   const [hasErrors, setHasErrors] = useState<boolean>(false);
   const [wasSuccessful, setWasSuccessful] = useState(false);
-  let transform = (data: FormFiledData) => data
+  let transform = (data: FormFieldData) => data
 
   
   useEffect(() => {
@@ -150,17 +150,11 @@ export const useForm = (
         if (error?.response?.status === 422) {
           const { errors } = error;
           let hasErrors = false;
-          const filteredErrors: Record<string, string | string[]> = {};
+          const filteredErrors: Record<string, string[]> = {};
 
           if (typeof errors === "object" && errors !== null) {
             Object.entries(errors).forEach(([fieldName, maybeValue]) => {
               if (typeof fieldName !== "string") return;
-
-              if (typeof maybeValue === "string") {
-                filteredErrors[fieldName] = maybeValue;
-                hasErrors = true;
-                return;
-              }
 
               if (Array.isArray(maybeValue) && maybeValue.length > 0) {
                 const errorValue = maybeValue.filter(
@@ -205,8 +199,8 @@ export const useForm = (
     hasErrors,
     filedData,
     setDefaults: (
-      fieldOrFields?: keyof FormFiledData | FormFiledData,
-      maybeValue?: FormFiledData[keyof FormFiledData]
+      fieldOrFields?: keyof FormFieldData | FormFieldData,
+      maybeValue?: FormFieldData[keyof FormFieldData]
     ): void => {
       if (typeof fieldOrFields === "undefined") {
         setDefaults(() => filedData);
@@ -216,7 +210,7 @@ export const useForm = (
       ) {
         setFiledData({ ...defaults, [fieldOrFields]: maybeValue });
       } else if (typeof fieldOrFields === "object") {
-        const newData: FormFiledData = {};
+        const newData: FormFieldData = {};
         for (const key in fieldOrFields) {
           if (fieldOrFields.hasOwnProperty(key)) {
             newData[key] = fieldOrFields[key];
@@ -229,8 +223,8 @@ export const useForm = (
       }
     },
     setFiledData: (
-      keyOrData: keyof FormFiledData | FormFiledData,
-      maybeValue?: FormFiledData[keyof FormFiledData]
+      keyOrData: keyof FormFieldData | FormFieldData,
+      maybeValue?: FormFieldData[keyof FormFieldData]
     ): void => {
       if (typeof keyOrData === "string" && maybeValue !== undefined) {
         setFiledData({
@@ -238,7 +232,7 @@ export const useForm = (
           [keyOrData]: maybeValue,
         });
       } else if (typeof keyOrData === "object") {
-        const newData: FormFiledData = {};
+        const newData: FormFieldData = {};
         Object.entries(keyOrData).forEach(([key, value]) => {
           if (typeof key === "string") {
             newData[key] = value;
@@ -254,12 +248,12 @@ export const useForm = (
     transform(callback) {
       transform = callback
     },
-    reset(...fields: Array<keyof FormFiledData>) {
+    reset(...fields: Array<keyof FormFieldData>) {
       if (fields.length === 0) {
         setFiledData(defaults);
       } else {
         setFiledData(
-          (Object.keys(defaults) as Array<keyof FormFiledData>)
+          (Object.keys(defaults) as Array<keyof FormFieldData>)
             .filter((key) => fields.includes(key))
             .reduce(
               (carry, key) => {
@@ -272,26 +266,22 @@ export const useForm = (
       }
     },
     errors,
-    setError: (
-      fieldErrorOrErrros: keyof FormFieldsError | FormFieldsError,
-      maybeValue?: string | string[]
+    setError : (
+      fieldErrorOrErrors: string | FormFieldsError,
+      maybeValue?: string[]
     ): void => {
       setErrors((errors: FormFieldsError) => {
+        
         const newErrors: FormFieldsError = {
           ...errors,
-          ...((typeof fieldErrorOrErrros === "string" &&
-            typeof maybeValue === "string") ||
-          (typeof fieldErrorOrErrros === "string" &&
-            typeof maybeValue === "object" &&
-            Array.isArray(maybeValue))
-            ? { [fieldErrorOrErrros]: maybeValue }
-            : (fieldErrorOrErrros as Record<
-                keyof FormFieldsError,
-                string | string[]
-              >)),
+          ...(typeof fieldErrorOrErrors === "string"
+            ? { [fieldErrorOrErrors]: maybeValue || [] } // Default to empty array if undefined
+            : (fieldErrorOrErrors as Record<string, string[]>)),
         };
+    
         setHasErrors(Object.keys(newErrors).length > 0);
         return newErrors;
+        
       });
     },
     clearErrors(...fields: Array<keyof FormFieldsError>): void {
