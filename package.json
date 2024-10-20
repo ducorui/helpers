@@ -1,6 +1,6 @@
 {
   "name": "@ducor/helpers",
-  "version": "1.0.9",
+  "version": "1.1.0",
   "private": false,
   "type": "commonjs",
   "publishConfig": {
@@ -30,13 +30,15 @@
   "license": "MIT",
   "description": "",
   "devDependencies": {
+    "@types/lodash.isequal": "^4.5.8",
     "@types/react": "*",
     "cross-env": "^7.0.3",
     "tsc-watch": "^6.2.0",
     "typescript": "^5.6.3"
   },
   "dependencies": {
-    "@ducor/http-client": "*",
+    "@ducor/http-client": "^0.4.1",
+    "lodash.isequal": "^4.5.0",
     "react": "*"
   },
   "files": [
