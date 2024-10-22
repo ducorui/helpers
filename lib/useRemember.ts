@@ -25,7 +25,7 @@ export default function useRemember<State>(
   // Update cookies whenever the state changes
   useEffect(() => {
     if (key) {
-      setCookie(key, JSON.stringify(state), 7); // Set cookie to expire in 7 days
+      setCookie(key, JSON.stringify(state), 1); // Set cookie to expire in 7 days
     }
   }, [state, key]);
 

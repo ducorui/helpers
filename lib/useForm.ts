@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import http from "@ducor/http-client";
-import isEqual from "lodash.isequal";
+import isEqual from "react-fast-compare";
 import useRemember from "./useRemember";
+import set from 'lodash.set';
+import { useStore } from "./useStore";
 
 export type AnyMethod = (...args: any[]) => any;
 
@@ -42,14 +44,14 @@ interface UseFormReturn {
   processing: boolean;
   hasErrors: boolean;
   wasSuccessful: boolean;
-  
-  data: FormFieldData;
+  defaults: FormFieldData;
   setDefaults: (
     fieldOrFields?: string | FormFieldData,
     maybeValue?: FormFieldData[keyof FormFieldData]
   ) => void;
+  data: FormFieldData;
   setData: (keyOrData: keyof FormFieldData | FormFieldData,
-    maybeValue?: FormFieldData[keyof FormFieldData]) => void;
+    maybeValue?: FormFieldData[keyof FormFieldData], objKey?: string) => void;
   transform: (callback: any) => any;
   reset: (...fields: Array<keyof FormFieldData>) => void;
   errors: FormFieldsError;
@@ -67,12 +69,11 @@ export const useForm = (
 ): UseFormReturn => {
 
   const isMounted = useRef<boolean|null>(null);
-  const rememberKey = typeof rememberKeyOrInitialValues === 'string' ? rememberKeyOrInitialValues : null
+  const rememberKey = typeof rememberKeyOrInitialValues === 'string' ? rememberKeyOrInitialValues : null;
 
   const [defaults, setDefaults] = useState<FormFieldData>(
     (typeof rememberKeyOrInitialValues === 'string' ? maybeInitialValues : rememberKeyOrInitialValues) || ({} as FormFieldData)
   );
-
   const [data, setData] = rememberKey ? useRemember(defaults, `${rememberKey}:data`) : useState(defaults)
 
   const [errors, setErrors] = useState<FormFieldsError>({});
@@ -182,6 +183,7 @@ export const useForm = (
     processing,
     wasSuccessful,
     hasErrors,
+    defaults,
     data,
     setDefaults(fieldOrFields?: string | FormFieldData, maybeValue?: string| string[]) {
       
@@ -203,13 +205,28 @@ export const useForm = (
     },
     setData: (
       keyOrData: keyof FormFieldData | FormFieldData,
-      maybeValue?: FormFieldData[keyof FormFieldData]
+      maybeValue?: FormFieldData[keyof FormFieldData],
+      objKey?: string,
     ): void => {
+
+      if(Object.keys(errors).length){
+        setErrors({});
+      }
       if (typeof keyOrData === "string" && maybeValue !== undefined) {
-        setData({
-          ...data,
-          [keyOrData]: maybeValue,
-        });
+
+        if(typeof objKey === 'string' && objKey !== "" ){
+          setData({
+            ...data, 
+            ...set(data, objKey, maybeValue)
+          });
+        }else {
+          setData({
+            ...data,
+            [keyOrData]: maybeValue,
+          });
+        }
+
+        
       } else if (typeof keyOrData === "object") {
         const newData: FormFieldData = {};
         Object.entries(keyOrData).forEach(([key, value]) => {
