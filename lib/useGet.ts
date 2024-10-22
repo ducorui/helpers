@@ -1,10 +1,10 @@
 import http from "@ducor/http-client"
 import {  useEffect, useState } from "react"
-import { useStore } from "./useStore";
+import useStore from "./useStore";
 
 const useGet = (url: string) => {
 
-    const {data, updateStore} = useStore(url);
+    const [data, setData, isPrevFetched] = useStore(undefined, url);
     const [isLoading, setIsLoading] = useState(true);
     const [hasErrors, setHasErrors] = useState(false);
     const [error, setError] = useState(null);
@@ -14,14 +14,12 @@ const useGet = (url: string) => {
 
         const feactData = async () => {
 
-            updateStore(url, null, 'wait');
-
             setHasErrors(false);
             setWasSuccessful(false);
             setIsLoading(true);
             try {
                 const response = await http.get(url);
-                updateStore(url, response.data);
+                setData(response.data);
                 // setData(response.data)
             } catch (error: any) {
                 console.error(error)
@@ -36,7 +34,7 @@ const useGet = (url: string) => {
             }
         }
 
-        if(data.status === "start"){
+        if(isPrevFetched === undefined){
             feactData();
         }
 
@@ -44,7 +42,7 @@ const useGet = (url: string) => {
     }, [url, data]);
 
 
-    return { data: data.data, isLoading, hasErrors, error, wasSuccessful };
+    return { data, isLoading, hasErrors, error, wasSuccessful };
 
 }
 

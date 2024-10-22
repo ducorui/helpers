@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import http from "@ducor/http-client";
-import isEqual from "react-fast-compare";
-import useRemember from "./useRemember";
 import set from 'lodash.set';
-import { useStore } from "./useStore";
+import useStore from "./useStore";
+import { getNameAndObjKey } from "./utils";
+import isEqual from "react-fast-compare";
 
 export type AnyMethod = (...args: any[]) => any;
 
@@ -51,7 +51,7 @@ interface UseFormReturn {
   ) => void;
   data: FormFieldData;
   setData: (keyOrData: keyof FormFieldData | FormFieldData,
-    maybeValue?: FormFieldData[keyof FormFieldData], objKey?: string) => void;
+    maybeValue?: FormFieldData[keyof FormFieldData]) => void;
   transform: (callback: any) => any;
   reset: (...fields: Array<keyof FormFieldData>) => void;
   errors: FormFieldsError;
@@ -74,8 +74,8 @@ export const useForm = (
   const [defaults, setDefaults] = useState<FormFieldData>(
     (typeof rememberKeyOrInitialValues === 'string' ? maybeInitialValues : rememberKeyOrInitialValues) || ({} as FormFieldData)
   );
-  const [data, setData] = rememberKey ? useRemember(defaults, `${rememberKey}:data`) : useState(defaults)
-
+  const [data, setData, isPrevFetched] = rememberKey ? useStore({...defaults}, `${rememberKey}:data`) : useState({...defaults})
+  
   const [errors, setErrors] = useState<FormFieldsError>({});
   const [processing, setProcessing] = useState<boolean>(false);
   const [hasErrors, setHasErrors] = useState<boolean>(false);
@@ -97,6 +97,10 @@ export const useForm = (
     options: OptionsOrConfig = {}
 
   ) => {
+
+    if(isPrevFetched !== undefined){
+      return;
+    }
 
     setWasSuccessful(false);
     setErrors({});
@@ -178,8 +182,10 @@ export const useForm = (
 
   }, [data, setErrors, transform]);
 
+console.log({defaults, data});
+
   return {
-    isDirty: !isEqual(data, defaults),
+    isDirty: !isEqual(defaults, data),
     processing,
     wasSuccessful,
     hasErrors,
@@ -206,7 +212,6 @@ export const useForm = (
     setData: (
       keyOrData: keyof FormFieldData | FormFieldData,
       maybeValue?: FormFieldData[keyof FormFieldData],
-      objKey?: string,
     ): void => {
 
       if(Object.keys(errors).length){
@@ -214,11 +219,16 @@ export const useForm = (
       }
       if (typeof keyOrData === "string" && maybeValue !== undefined) {
 
-        if(typeof objKey === 'string' && objKey !== "" ){
-          setData({
+        const [name, objectKey] = getNameAndObjKey(keyOrData);
+
+        if(typeof objectKey === 'string' && objectKey !== "" ){
+
+          const newData = {
             ...data, 
-            ...set(data, objKey, maybeValue)
-          });
+            ...set(data, `${name}.${objectKey}`, maybeValue)
+          };
+
+          setData(newData);
         }else {
           setData({
             ...data,

@@ -34,8 +34,10 @@ export const isEmptyArray = (value?: any) =>
   export const isInputEvent = (value: any): value is React.SyntheticEvent<any> =>
     value && isObject(value) && isObject(value.target);
   
-
-
+  export const validFieldName = (name: string, regex?: any ): boolean => {
+    const currentRegex= regex? regex: /^[a-zA-Z0-9_-]+(\[[a-zA-Z0-9]+\])*$/;
+    return currentRegex.test(name);
+  };
   
   export {getNameAndObjKey} from "./utils";
 
